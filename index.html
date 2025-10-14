@@ -241,55 +241,80 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded',()=>{
-  const qs=id=>document.getElementById(id);
-  const home=qs('home'),practice=qs('practice'),feedback=qs('feedback'),vypocet=qs('vypocet'),
-        zapis=qs('zapis'),zapisList=qs('zapis-list'),calcModal=qs('calcModal'),
-        calcDisplay=qs('calcDisplay'),calcLast=qs('calcLast'),
-        copyResultBtn=qs('copyResultBtn'),copiedMsg=qs('copiedMsg');
-  let topic='',moduleType='',difficulty='',expression='',lastExpression='';
+// Bezpečný parser výrazu místo eval()
+function safeCalc(expr) {
+  try {
+    // povolené znaky
+    if (!/^[0-9+\\-*/.()\\s]+$/.test(expr)) return NaN;
+    return new Function('return ' + expr)();
+  } catch { return NaN; }
+}
 
-  // === MENU ===
-  document.querySelectorAll('#moduleGroup .btn').forEach(b=>b.onclick=()=>{document.querySelectorAll('#moduleGroup .btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');moduleType=b.dataset.value;});
-  document.querySelectorAll('#difficultyGroup .btn').forEach(b=>b.onclick=()=>{document.querySelectorAll('#difficultyGroup .btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');difficulty=b.dataset.value;});
-  qs('startBtn').onclick=()=>{topic=qs('topic').value;if(!topic||!moduleType||!difficulty)return alert('Vyber vše');home.classList.add('hidden');practice.classList.remove('hidden');resetZapis();};
+document.addEventListener('DOMContentLoaded', () => {
+  const q = id => document.getElementById(id);
+  const home = q('home'), practice = q('practice'), feedback = q('feedback'),
+        vypocet = q('vypocet'), zapis = q('zapis'), zapisList = q('zapis-list'),
+        calcModal = q('calcModal'), calcDisplay = q('calcDisplay'),
+        calcLast = q('calcLast'), copyResultBtn = q('copyResultBtn'),
+        copiedMsg = q('copiedMsg'), formulaDisplay = q('formulaDisplay');
+  let expression='', lastExpression='';
 
-  qs('backBtn').onclick=()=>{practice.classList.add('hidden');home.classList.remove('hidden');};
-  qs('newTaskBtn').onclick=()=>{feedback.classList.add('hidden');resetZapis();};
+  // Úvod
+  document.querySelectorAll('#moduleGroup .btn').forEach(btn =>
+    btn.onclick = () => {
+      document.querySelectorAll('#moduleGroup .btn').forEach(x=>x.classList.remove('selected'));
+      btn.classList.add('selected');
+      window.moduleType = btn.dataset.value;
+    });
+  document.querySelectorAll('#difficultyGroup .btn').forEach(btn =>
+    btn.onclick = () => {
+      document.querySelectorAll('#difficultyGroup .btn').forEach(x=>x.classList.remove('selected'));
+      btn.classList.add('selected');
+      window.difficulty = btn.dataset.value;
+    });
+  q('startBtn').onclick = () => {
+    const topic = q('topic').value;
+    if (!topic || !window.moduleType || !window.difficulty) return alert('Vyber vše');
+    home.classList.add('hidden'); practice.classList.remove('hidden'); resetZapis();
+  };
+  q('backBtn').onclick = () => { practice.classList.add('hidden'); home.classList.remove('hidden'); };
+  q('newTaskBtn').onclick = () => { feedback.classList.add('hidden'); resetZapis(); };
+  q('formulaBtn').onclick = () => formulaDisplay.classList.toggle('hidden');
 
-  // === ZÁPIS ===
-  function createSelect(opts){const s=document.createElement('select');opts.forEach(o=>{const op=document.createElement('option');op.textContent=o;s.appendChild(op);});return s;}
+  // zápis
+  function createSelect(o){const s=document.createElement('select');o.forEach(v=>{const opt=document.createElement('option');opt.textContent=v;s.appendChild(opt);});return s;}
   function makeRow(){const r=document.createElement('div');r.className='zapis-radek';
-    const vel=createSelect(['s','F','W']);const val=document.createElement('input');val.placeholder='Hodnota';
-    const unit=createSelect(['m','cm','km','N','kN','J','kJ']);const cb=document.createElement('input');cb.type='checkbox';
-    cb.onchange=()=>{if(cb.checked){val.value='?';r.parentNode.querySelectorAll('input[type=checkbox]').forEach(x=>{if(x!==cb)x.checked=false;});}else if(val.value==='?')val.value='';};
-    r.append(vel,val,unit,cb);return r;}
+    const v=createSelect(['s','F','W']);const i=document.createElement('input');i.placeholder='Hodnota';
+    const u=createSelect(['m','cm','km','N','kN','J','kJ']);const c=document.createElement('input');c.type='checkbox';
+    c.onchange=()=>{if(c.checked){i.value='?';r.parentNode.querySelectorAll('input[type=checkbox]').forEach(x=>{if(x!==c)x.checked=false;});}else if(i.value==='?')i.value='';};
+    r.append(v,i,u,c);return r;}
   function resetZapis(){zapisList.innerHTML='';for(let i=0;i<3;i++)zapisList.append(makeRow());}
-  qs('addRowBtn').onclick=()=>zapisList.append(makeRow());
-  qs('checkZapisBtn').onclick=()=>{feedback.textContent='Zkontroluj jednotky';feedback.classList.remove('hidden');vypocet.classList.remove('hidden');zapis.classList.add('hidden');};
-  qs('checkVypocetBtn').onclick=()=>{feedback.textContent='Správně!';feedback.classList.remove('hidden');};
+  q('addRowBtn').onclick = () => zapisList.append(makeRow());
+  q('checkZapisBtn').onclick = () => { feedback.textContent='Zkontroluj jednotky'; feedback.classList.remove('hidden'); vypocet.classList.remove('hidden'); zapis.classList.add('hidden'); };
+  q('checkVypocetBtn').onclick = () => { feedback.textContent='Správně!'; feedback.classList.remove('hidden'); };
 
-  // === KALKULAČKA ===
-  const calcBtns=['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+','←','C'];
-  const grid=qs('calcButtons');
-  calcBtns.forEach(t=>{const b=document.createElement('button');b.className='calc-btn';b.textContent=t;grid.appendChild(b);});
-  grid.onclick=e=>{
+  // Kalkulačka
+  const btns = ['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+','←','C'];
+  const grid = q('calcButtons');
+  btns.forEach(b => {const el=document.createElement('button');el.className='calc-btn';el.textContent=b;grid.appendChild(el);});
+  grid.onclick = e => {
+    if(!e.target.classList.contains('calc-btn'))return;
     const v=e.target.textContent;
     if(v==='C'){expression='';calcDisplay.textContent='';}
     else if(v==='←'){expression=expression.slice(0,-1);calcDisplay.textContent=expression;}
-    else if(v==='='){try{lastExpression=expression+' = '+eval(expression);expression=eval(expression).toString();calcLast.textContent=lastExpression;calcDisplay.textContent=expression;}catch{calcDisplay.textContent='Error';expression='';}}
+    else if(v==='='){const res=safeCalc(expression);if(!isNaN(res)){lastExpression=expression+' = '+res;expression=res.toString();calcLast.textContent=lastExpression;calcDisplay.textContent=expression;}else{calcDisplay.textContent='Chyba';expression='';}}
     else{expression+=v;calcDisplay.textContent=expression;}
   };
-  document.onkeydown=e=>{
+  document.onkeydown = e => {
     if(calcModal.classList.contains('hidden'))return;
     if(/[0-9+\\-*/.]/.test(e.key)){expression+=e.key;calcDisplay.textContent=expression;}
-    else if(e.key==='Enter'){try{lastExpression=expression+' = '+eval(expression);expression=eval(expression).toString();calcLast.textContent=lastExpression;calcDisplay.textContent=expression;}catch{calcDisplay.textContent='Error';expression='';}}
+    else if(e.key==='Enter'){const res=safeCalc(expression);if(!isNaN(res)){lastExpression=expression+' = '+res;expression=res.toString();calcLast.textContent=lastExpression;calcDisplay.textContent=expression;}else{calcDisplay.textContent='Chyba';expression='';}}
     else if(e.key==='Backspace'){expression=expression.slice(0,-1);calcDisplay.textContent=expression;}
   };
-  qs('calcBtn').onclick=()=>{calcModal.classList.remove('hidden');copiedMsg.classList.add('hidden');};
-  qs('closeCalc').onclick=()=>calcModal.classList.add('hidden');
-  calcModal.onclick=e=>{if(e.target===calcModal)calcModal.classList.add('hidden');};
-  copyResultBtn.onclick=()=>{navigator.clipboard.writeText(calcDisplay.textContent||'');copiedMsg.classList.remove('hidden');};
+  q('calcBtn').onclick = () => {calcModal.classList.remove('hidden');copiedMsg.classList.add('hidden');};
+  q('closeCalc').onclick = () => calcModal.classList.add('hidden');
+  calcModal.onclick = e => {if(e.target===calcModal)calcModal.classList.add('hidden');};
+  copyResultBtn.onclick = () => {navigator.clipboard.writeText(calcDisplay.textContent||'');copiedMsg.classList.remove('hidden');};
 });
 </script>
 </body>
