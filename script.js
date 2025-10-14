@@ -1,180 +1,344 @@
-<!DOCTYPE html>
-<html lang="cs">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Procvičování fyziky</title>
-<style>
-  :root{
-    --bg:#111827;         /* pozadí stránky */
-    --card:#1f2937;       /* hlavní karta */
-    --group:#2a3446;      /* vnořené skupiny na úvodní stránce */
-    --input:#111827;
-    --border:#374151;
-    --text:#e5e7eb;
-    --muted:#9ca3af;
-    --primary:#2563eb;
-    --primary-2:#3b82f6;
-    --btn:#374151;
-    --ok:#60a5fa;
-    --alert-bg:#1e3a8a;
-    --alert-text:#bfdbfe;
-    --op:#475569;         /* tlačítka operátorů */
-    --spec:#334155;       /* tlačítka speciálních funkcí */
+// =============== Pomocné funkce + parser kalkulačky (bez eval) ===============
+function $(id){return document.getElementById(id);}
+
+// Tokenizace
+function tokenize(expr){
+  const tokens=[]; let i=0;
+  while(i<expr.length){
+    const ch=expr[i];
+    if(/\s/.test(ch)){ i++; continue; }
+    if(/[0-9.]/.test(ch)){
+      let num=ch; i++;
+      while(i<expr.length && /[0-9.]/.test(expr[i])){ num+=expr[i++]; }
+      tokens.push({type:'num', value:num});
+      continue;
+    }
+    if(/[+\-*/()]/.test(ch)){ tokens.push({type:'op', value:ch}); i++; continue; }
+    return null;
   }
-  body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px}
-  .card{background:var(--card);padding:32px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:760px;width:100%;text-align:center}
-  h1,h2,h3{margin:0 0 12px}
-  .stack{display:grid;gap:14px}
-  .stack-lg{display:grid;gap:18px}
-  select,input{background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:16px;width:100%;box-sizing:border-box}
-  .btn{background:var(--btn);color:var(--text);border:none;border-radius:8px;padding:12px 0;font-size:16px;cursor:pointer;transition:background .2s,color .2s;width:100%}
-  .btn:hover{background:var(--primary);color:#fff}
-  .btn.selected{background:var(--primary-2);color:#fff}
-  .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .btn-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-  .hidden{display:none !important}
-  .muted{color:var(--muted)}
-  .zadani{background:var(--btn);padding:12px;border-radius:8px;font-size:15px;text-align:left;margin-bottom:16px}
-  .zapis-radek{display:grid;grid-template-columns:1.1fr 1.2fr 1.2fr auto;gap:12px;align-items:center}
-  .zapis-list{display:grid;gap:14px;margin-top:10px}
-  .checkbox{transform:scale(1.35)}
-  .zapis-controls{display:grid;gap:12px;margin-top:16px}
-  .alert{margin-top:20px;padding:12px;border-radius:8px;background:var(--alert-bg);color:var(--alert-text);text-align:left}
-  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-  .link{background:none;border:none;color:#93c5fd;cursor:pointer;padding:8px;border-radius:8px}
-  .link:hover{text-decoration:underline}
-  .extra-buttons{display:flex;gap:10px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
-  svg{width:100%;max-width:420px;height:auto}
+  return tokens;
+}
+function normalizeUnary(expr){
+  let out=expr.replace(/\s+/g,'');
+  out = out.replace(/^\-/,'0-');
+  out = out.replace(/\(\-/g,'(0-');
+  return out;
+}
+function toRPN(tokens){
+  const out=[]; const stack=[];
+  const prec={'+':1,'-':1,'*':2,'/':2};
+  for(const t of tokens){
+    if(t.type==='num'){ out.push(t); }
+    else if(/[+\-*/]/.test(t.value)){
+      while(stack.length){
+        const top=stack[stack.length-1];
+        if(/[+\-*/]/.test(top.value) && prec[t.value] <= prec[top.value]){
+          out.push(stack.pop());
+        }else break;
+      }
+      stack.push(t);
+    }else if(t.value==='('){ stack.push(t); }
+    else if(t.value===')'){
+      let found=false;
+      while(stack.length){
+        const top=stack.pop();
+        if(top.value==='('){ found=true; break; }
+        out.push(top);
+      }
+      if(!found) return null;
+    }
+  }
+  while(stack.length){
+    const t=stack.pop();
+    if(t.value==='('||t.value===')') return null;
+    out.push(t);
+  }
+  return out;
+}
+function evalRPN(rpn){
+  const st=[];
+  for(const t of rpn){
+    if(t.type==='num'){ st.push(parseFloat(t.value)); }
+    else{
+      const b=st.pop(), a=st.pop();
+      if(a===undefined||b===undefined) return NaN;
+      if(t.value==='+') st.push(a+b);
+      else if(t.value==='-') st.push(a-b);
+      else if(t.value==='*') st.push(a*b);
+      else if(t.value==='/') st.push(b===0?NaN:a/b);
+    }
+  }
+  return st.length===1? st[0] : NaN;
+}
+function safeCalc(expr){
+  const norm=normalizeUnary(expr);
+  const tok=tokenize(norm); if(!tok) return NaN;
+  const rpn=toRPN(tok); if(!rpn) return NaN;
+  return evalRPN(rpn);
+}
 
-  /* úvodní skupiny (vzhledový obdélník) */
-  .group{background:var(--group);padding:16px;border-radius:12px;text-align:left}
-  .group h3{margin-bottom:10px}
+// ================================ Aplikace ===================================
+document.addEventListener('DOMContentLoaded',()=>{
+  // DOM
+  const home=$('home'), practice=$('practice'), feedback=$('feedback'),
+        vypocet=$('vypocet'), zapis=$('zapis'), zapisList=$('zapis-list'),
+        zadaniText=$('zadani-text'), sceneDisplay=$('sceneDisplay');
 
-  /* Modal kalkulačka */
-  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:1000}
-  .calc-modal{background:var(--card);padding:20px;border-radius:12px;box-shadow:0 0 20px rgba(0,0,0,.5);width:320px;display:flex;flex-direction:column;align-items:center;position:relative}
-  .calc-last,.calc-display{width:100%;background:var(--input);border:1px solid var(--border);border-radius:8px;color:var(--text);text-align:right;font-size:1.2rem;padding:8px;min-height:2em;margin-bottom:8px}
-  .calc-last{font-size:.9rem;color:var(--muted);min-height:1.5em;margin-bottom:4px}
-  .calc-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%;margin-top:8px}
-  .calc-btn{background:var(--btn);color:var(--text);border:none;border-radius:8px;padding:12px;font-size:1.05rem;cursor:pointer}
-  .calc-btn:hover{background:var(--primary);color:#fff}
-  .calc-btn.op{background:var(--op)}
-  .calc-btn.spec{background:var(--spec)}
-  .calc-btn.eq{background:var(--primary-2);color:#fff}
-  .close-calc{position:absolute;top:8px;right:12px;background:none;color:var(--muted);border:none;font-size:1.2rem;cursor:pointer}
-  .copied-msg{margin-top:8px;color:var(--ok);font-size:.9rem}
+  // ÚVOD – výběry
+  document.querySelectorAll('#moduleGroup .btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('#moduleGroup .btn').forEach(x=>x.classList.remove('selected'));
+      btn.classList.add('selected');
+      window._module=btn.dataset.value;
+    });
+  });
+  document.querySelectorAll('#difficultyGroup .btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('#difficultyGroup .btn').forEach(x=>x.classList.remove('selected'));
+      btn.classList.add('selected');
+      window._difficulty=btn.dataset.value;
+    });
+  });
 
-  /* boxy pod zadáním */
-  #formulaDisplay,#sceneDisplay{background:#0f172a33;border:1px solid #334155;border-radius:10px;padding:12px}
-</style>
-</head>
-<body>
+  $('startBtn').addEventListener('click',()=>{
+    const topic=$('topic').value;
+    if(!topic||!window._module||!window._difficulty){
+      alert('Vyber téma, modul i obtížnost.');
+      return;
+    }
+    home.classList.add('hidden');
+    practice.classList.remove('hidden');
+    resetZapis();
+  });
 
-<!-- ÚVOD -->
-<div class="card stack-lg" id="home">
-  <h1>Procvičování fyziky</h1>
+  $('backBtn').addEventListener('click',()=>{
+    practice.classList.add('hidden');
+    home.classList.remove('hidden');
+  });
 
-  <div class="group">
-    <h3>Téma</h3>
-    <select id="topic">
-      <option value="">Vyber téma...</option>
-      <option value="Práce">Práce</option>
-      <option disabled>Výkon (brzy)</option>
-      <option disabled>Potenciální energie (brzy)</option>
-    </select>
-  </div>
+  // ===== Zadání a generování =====
+  const zadaniList=[
+    'Jakou práci vykoná síla 1500 N působící na dráze 50 m?',
+    'Jak velkou práci vykoná síla 200 N při posunutí tělesa o 30 m?',
+    'Síla 500 N působí na těleso po dráze 20 m. Jakou práci vykoná?',
+    'Jakou dráhu urazí těleso, když práce je 6000 J a síla 300 N?',
+    'Jak velká síla vykoná práci 9000 J při posunutí o 15 m?'
+  ];
 
-  <div class="group">
-    <h3>Modul</h3>
-    <div class="btn-row" id="moduleGroup">
-      <button class="btn" data-value="Procvičování">Procvičování</button>
-      <button class="btn" data-value="Test">Test</button>
-    </div>
-  </div>
+  $('newTaskBtn').addEventListener('click',()=>{
+    zadaniText.textContent = zadaniList[Math.floor(Math.random()*zadaniList.length)];
+    feedback.classList.add('hidden');
+    vypocet.classList.add('hidden');
+    zapis.classList.remove('hidden');
+    sceneDisplay.classList.add('hidden');
+    sceneDisplay.innerHTML='';
+    resetZapis();
+  });
 
-  <div class="group">
-    <h3>Obtížnost</h3>
-    <div class="btn-row-3" id="difficultyGroup">
-      <button class="btn" data-value="Lehká">Lehká</button>
-      <button class="btn" data-value="Normální">Normální</button>
-      <button class="btn" data-value="Výzva">Výzva</button>
-    </div>
-  </div>
+  // ===== Vzorec a Obrázek =====
+  $('formulaBtn').addEventListener('click',()=>{
+    $('formulaDisplay').classList.toggle('hidden');
+  });
 
-  <button class="btn" id="startBtn">Spustit</button>
-  <div class="muted">Tip: Aplikace běží z GitHub Pages; změny se projeví po „Commit changes“.</div>
-</div>
+  $('sceneBtn').addEventListener('click',()=>{
+    const params = extractParamsFromZadani(zadaniText.textContent);
+    sceneDisplay.innerHTML = renderSceneSVG(params);
+    sceneDisplay.classList.toggle('hidden');
+  });
 
-<!-- PROCVIČOVÁNÍ -->
-<div class="card hidden" id="practice">
-  <div class="topbar">
-    <h2 id="title">Práce – Lehká</h2>
-    <div style="display:flex;gap:10px;">
-      <button class="link" id="newTaskBtn">Nový příklad</button>
-      <button class="link" id="backBtn">Zpět</button>
-    </div>
-  </div>
+  // ===== Nápověda – doplňuje hodnoty ZE ZADÁNÍ =====
+  $('helpBtn').addEventListener('click',()=>{
+    const params = extractParamsFromZadani(zadaniText.textContent);
+    // najdi první prázdný řádek a doplň podle zvolené veličiny
+    const emptyRow = Array.from(zapisList.children)
+      .find(row => row.querySelector('input').value.trim()==='');
+    if(emptyRow){
+      const velSel = emptyRow.querySelector('select');             // první select (s/F/W)
+      const unitSel = emptyRow.querySelectorAll('select')[1];      // druhý select (jednotka)
+      const valInp = emptyRow.querySelector('input');
 
-  <div class="zadani">
-    <strong>Zadání:</strong> <span id="zadani-text">Jakou práci vykoná síla 1500 N působící na dráze 50 m?</span>
-  </div>
+      const vel = velSel.value; // 's' | 'F' | 'W'
+      let val = '';
+      if(vel==='F' && params.F!=null){ val = params.F; unitSel.value='N'; }
+      else if(vel==='s' && params.s!=null){ val = params.s; unitSel.value='m'; }
+      else if(vel==='W' && params.W!=null){ val = params.W; unitSel.value='J'; }
 
-  <div class="extra-buttons">
-    <button class="btn" id="calcBtn">Kalkulačka</button>
-    <button class="btn" id="formulaBtn">Vzorec</button>
-    <button class="btn" id="sceneBtn">Obrázek</button>
-    <button class="btn" id="helpBtn">Nápověda</button>
-  </div>
+      if(val!==''){
+        valInp.value = String(val);
+        feedback.textContent = `Nápověda: doplněna veličina ${vel} = ${val} (${unitSel.value}) podle zadání.`;
+      }else{
+        feedback.textContent = 'Nápověda: pro zvolenou veličinu nemám hodnotu v zadání.';
+      }
+      feedback.classList.remove('hidden');
+    }else{
+      feedback.textContent='Všechny řádky už jsou vyplněné.';
+      feedback.classList.remove('hidden');
+    }
+  });
 
-  <!-- vzorec v trojúhelníku: vodorovná střední příčka, nahoře W, dole F·s -->
-  <div id="formulaDisplay" class="hidden">
-    <svg viewBox="0 0 220 140" aria-label="Trojúhelník vzorce práce">
-      <!-- rovnoramenný trojúhelník -->
-      <polygon points="110,10 20,120 200,120" fill="none" stroke="#60a5fa" stroke-width="2"/>
-      <!-- VODOROVNÁ střední příčka (polovina výšky) -->
-      <line x1="50" y1="65" x2="170" y2="65" stroke="#60a5fa" stroke-width="2"/>
-      <!-- popisky -->
-      <text x="103" y="40" fill="#60a5fa" font-size="20">W</text>
-      <text x="85" y="102" fill="#60a5fa" font-size="18">F · s</text>
-    </svg>
-  </div>
+  // ===== Zápis – řádky =====
+  function selectEl(opts, def){
+    const s=document.createElement('select');
+    opts.forEach(o=>{const op=document.createElement('option');op.textContent=o;if(o===def)op.selected=true;s.appendChild(op);});
+    return s;
+  }
+  function makeRow(vel='s', val='', unit='m'){
+    const r=document.createElement('div'); r.className='zapis-radek';
+    const sVel=selectEl(['s','F','W'],vel);
+    const inp=document.createElement('input'); inp.placeholder='Hodnota'; inp.value=val;
+    const sUni=selectEl(['m','cm','km','N','kN','J','kJ'],unit);
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.className='checkbox'; cb.title='Hledaná veličina';
+    cb.addEventListener('change',()=>{
+      if(cb.checked){
+        zapisList.querySelectorAll('input[type=checkbox]').forEach(x=>{if(x!==cb)x.checked=false;});
+        inp.value='?';
+      }else if(inp.value==='?'){inp.value='';}
+    });
+    r.append(sVel,inp,sUni,cb);
+    return r;
+  }
+  function resetZapis(){
+    zapisList.innerHTML='';
+    zapisList.append(makeRow('F','', 'N'), makeRow('s','', 'm'), makeRow('W','', 'J'));
+  }
+  $('addRowBtn').addEventListener('click',()=>zapisList.append(makeRow()));
+  $('checkZapisBtn').addEventListener('click',()=>{
+    feedback.textContent='Zkontroluj jednotky – musí být v základních jednotkách (N, m, J).';
+    feedback.classList.remove('hidden');
+    vypocet.classList.remove('hidden');
+    zapis.classList.add('hidden');
+  });
+  $('checkVypocetBtn').addEventListener('click',()=>{
+    feedback.textContent='Správně! Práce je 75 000 J. Skvělá práce!';
+    feedback.classList.remove('hidden');
+  });
 
-  <!-- jednoduchý obrázek situace -->
-  <div id="sceneDisplay" class="hidden"></div>
+  // ===== Kalkulačka (UI + interakce) =====
+  const calcModal=$('calcModal'), calcDisplay=$('calcDisplay'), calcLast=$('calcLast'),
+        calcButtons=$('calcButtons'), copyBtn=$('copyResultBtn'), copiedMsg=$('copiedMsg');
+  let expr='', last='';
 
-  <div id="zapis">
-    <h3>Zápis</h3>
-    <div id="zapis-list" class="zapis-list"></div>
-    <div class="zapis-controls">
-      <button class="btn" id="addRowBtn">+ Přidat veličinu</button>
-      <button class="btn" id="checkZapisBtn">Zkontrolovat zápis</button>
-    </div>
-  </div>
+  // vytvoření tlačítek s rozlišením kategorií
+  const layout = [
+    {t:'7'},{t:'8'},{t:'9'},{t:'/',c:'op'},
+    {t:'4'},{t:'5'},{t:'6'},{t:'*',c:'op'},
+    {t:'1'},{t:'2'},{t:'3'},{t:'-',c:'op'},
+    {t:'0'},{t:'.'},{t:'=',c:'eq'},{t:'+',c:'op'},
+    {t:'←',c:'spec'},{t:'C',c:'spec'}
+  ];
+  calcButtons.innerHTML='';
+  layout.forEach(({t,c})=>{
+    const b=document.createElement('button');
+    b.className='calc-btn'+(c?(' '+c):'');
+    b.textContent=t;
+    calcButtons.appendChild(b);
+  });
 
-  <div id="vypocet" class="hidden">
-    <h3>Výpočet</h3>
-    <input placeholder="W = F * s" style="margin-bottom:8px">
-    <input placeholder="W = 1500 * 50" style="margin-bottom:8px">
-    <input placeholder="W = 75000 J" style="margin-bottom:8px">
-    <button class="btn" id="checkVypocetBtn">Zkontrolovat výpočet</button>
-  </div>
+  function openCalc(){ calcModal.classList.remove('hidden'); copiedMsg.classList.add('hidden'); }
+  function closeCalc(){ calcModal.classList.add('hidden'); }
+  $('calcBtn').addEventListener('click',openCalc);
+  $('closeCalc').addEventListener('click',closeCalc);
+  calcModal.addEventListener('click',e=>{ if(e.target===calcModal) closeCalc(); });
 
-  <div class="alert hidden" id="feedback"></div>
-</div>
+  calcButtons.addEventListener('click',e=>{
+    if(!e.target.classList.contains('calc-btn'))return;
+    press(e.target.textContent);
+  });
+  document.addEventListener('keydown',e=>{
+    if(calcModal.classList.contains('hidden'))return;
+    if(/[0-9+\-*/.()]/.test(e.key)){ expr+=e.key; calcDisplay.textContent=expr; }
+    else if(e.key==='Enter'){ compute(); }
+    else if(e.key==='Backspace'){ expr=expr.slice(0,-1); calcDisplay.textContent=expr; }
+    else if(e.key==='Escape'){ closeCalc(); }
+  });
 
-<!-- MODÁLNÍ KALKULAČKA -->
-<div id="calcModal" class="modal-bg hidden" aria-hidden="true">
-  <div class="calc-modal" role="dialog" aria-modal="true" aria-label="Kalkulačka">
-    <button class="close-calc" id="closeCalc" aria-label="Zavřít">✖</button>
-    <div class="calc-last" id="calcLast"></div>
-    <div class="calc-display" id="calcDisplay"></div>
-    <div class="calc-buttons" id="calcButtons"></div>
-    <button class="btn" id="copyResultBtn">Kopírovat výsledek</button>
-    <div class="copied-msg hidden" id="copiedMsg">✅ Zkopírováno! Vložte pomocí Ctrl+V.</div>
-  </div>
-</div>
+  function press(v){
+    if(v==='C'){ expr=''; calcDisplay.textContent=''; return; }
+    if(v==='←'){ expr=expr.slice(0,-1); calcDisplay.textContent=expr; return; }
+    if(v==='='){ compute(); return; }
+    expr += v; calcDisplay.textContent = expr;
+  }
+  function compute(){
+    const res = safeCalc(expr);
+    if(isNaN(res)){ calcDisplay.textContent='Chyba'; expr=''; return; }
+    last = expr + ' = ' + res;
+    expr = String(res);
+    calcLast.textContent = last;
+    calcDisplay.textContent = expr;
+  }
+  copyBtn.addEventListener('click', async ()=>{
+    const text = calcDisplay.textContent || '';
+    try{
+      if(navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(text);
+      }else{
+        const ta=document.createElement('textarea');
+        ta.value=text; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      }
+      copiedMsg.classList.remove('hidden');
+    }catch{}
+  });
 
-<script src="script.js"></script>
-</body>
-</html>
+  // ====== Pomocné: extrakce hodnot ze zadání + vykreslení scény ======
+  // podporované šablony z pole zadaniList
+  function extractParamsFromZadani(text){
+    // W = F*s
+    // vzory:
+    // 1) "Jakou práci vykoná síla 1500 N působící na dráze 50 m?"
+    // 2) "Jak velkou práci vykoná síla 200 N při posunutí tělesa o 30 m?"
+    let m1 = text.match(/síla\s+(\d+)\s*N.*dráze\s+(\d+)\s*m/i);
+    if(m1){ return {F: Number(m1[1]), s: Number(m1[2]), W: null, type:'work'}; }
+    let m2 = text.match(/síla\s+(\d+)\s*N.*posunutí.*?o\s+(\d+)\s*m/i);
+    if(m2){ return {F: Number(m2[1]), s: Number(m2[2]), W: null, type:'work'}; }
+
+    // 3) "Síla 500 N působí na těleso po dráze 20 m. Jakou práci vykoná?"
+    let m3 = text.match(/Síla\s+(\d+)\s*N.*dráze\s+(\d+)\s*m/i);
+    if(m3){ return {F: Number(m3[1]), s: Number(m3[2]), W: null, type:'work'}; }
+
+    // 4) "Jakou dráhu ... když práce je 6000 J a síla 300 N?"
+    let m4 = text.match(/práce\s+je\s+(\d+)\s*J.*síla\s+(\d+)\s*N/i);
+    if(m4){ return {W: Number(m4[1]), F: Number(m4[2]), s: null, type:'work'}; }
+
+    // 5) "Jak velká síla ... práce 9000 J ... posunutí o 15 m?"
+    let m5 = text.match(/práce\s+(\d+)\s*J.*posunutí.*?o\s+(\d+)\s*m/i);
+    if(m5){ return {W: Number(m5[1]), s: Number(m5[2]), F: null, type:'work'}; }
+
+    return {F:null,s:null,W:null,type:'work'};
+  }
+
+  function renderSceneSVG(p){
+    // jednoduchá scéna: blok na vodorovné podložce, šipka síly a dráhy
+    const Ftxt = (p.F!=null)? `F = ${p.F} N` : 'F = ?';
+    const stxt = (p.s!=null)? `s = ${p.s} m` : 's = ?';
+    const Wtxt = (p.W!=null)? `W = ${p.W} J` : 'W = ?';
+
+    // Rozvržení tak, aby se texty nepřekrývaly:
+    // - blok uprostřed, šipka s doprava, popisky nad šipkami
+    return `
+      <svg viewBox="0 0 520 220" aria-label="Schéma situace práce na vodorovné podložce">
+        <!-- podložka -->
+        <line x1="20" y1="180" x2="500" y2="180" stroke="#64748b" stroke-width="3"/>
+        <!-- blok -->
+        <rect x="220" y="130" width="80" height="50" rx="6" fill="#334155" stroke="#94a3b8" />
+        <!-- síla -->
+        <line x1="300" y1="155" x2="440" y2="155" stroke="#60a5fa" stroke-width="4" marker-end="url(#arrow)"/>
+        <text x="360" y="140" fill="#60a5fa" font-size="14" text-anchor="middle">${Ftxt}</text>
+        <!-- dráha -->
+        <line x1="220" y1="200" x2="440" y2="200" stroke="#a3e635" stroke-width="3" marker-end="url(#arrowg)"/>
+        <text x="330" y="218" fill="#a3e635" font-size="14" text-anchor="middle">${stxt}</text>
+        <!-- práce -->
+        <text x="60" y="40" fill="#fca5a5" font-size="16">${Wtxt}</text>
+
+        <defs>
+          <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+            <polygon points="0,0 12,6 0,12" fill="#60a5fa"/>
+          </marker>
+          <marker id="arrowg" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+            <polygon points="0,0 12,6 0,12" fill="#a3e635"/>
+          </marker>
+        </defs>
+      </svg>
+    `;
+  }
+});
