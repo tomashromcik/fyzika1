@@ -5,151 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Procvičování fyziky</title>
 <style>
-  body {
-    background-color: #111827;
-    color: #e5e7eb;
-    font-family: 'Inter', system-ui, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    margin: 0;
-    padding: 16px;
-  }
-  .card {
-    background-color: #1f2937;
-    padding: 32px;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,.3);
-    max-width: 700px;
-    width: 100%;
-    text-align: center;
-  }
-  h1, h2, h3 { margin: 0 0 12px; }
-  select, input {
-    background-color: #111827;
-    color: #e5e7eb;
-    border: 1px solid #374151;
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 16px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .btn {
-    background-color: #374151;
-    color: #e5e7eb;
-    border: none;
-    border-radius: 8px;
-    padding: 12px 0;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background .2s, color .2s;
-    width: 100%;
-  }
-  .btn:hover { background-color: #2563eb; color: #fff; }
-  .btn.selected { background-color: #3b82f6; color: #fff; }
-  .btn-group { display: flex; gap: 12px; justify-content: center; margin-bottom: 12px; }
-  .hidden { display: none !important; }
-  .zadani {
-    background-color: #374151;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 15px;
-    text-align: left;
-    margin-bottom: 16px;
-  }
-  .zapis-radek {
-    display: grid;
-    grid-template-columns: 1.1fr 1.2fr 1.2fr auto;
-    gap: 12px;
-    align-items: center;
-  }
-  .zapis-list { display: grid; gap: 14px; margin-top: 10px; }
-  .checkbox { transform: scale(1.35); }
-  .zapis-controls { display: grid; gap: 12px; margin-top: 16px; }
-  .alert {
-    margin-top: 20px;
-    padding: 12px;
-    border-radius: 8px;
-    background-color: #1e3a8a;
-    color: #bfdbfe;
-    text-align: left;
-  }
-  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; }
-  .link { background:none; border:none; color:#93c5fd; cursor:pointer; padding:8px; border-radius:8px; }
-  .link:hover { text-decoration: underline; }
-  .extra-buttons { display:flex; gap:10px; justify-content:center; margin-bottom:16px; }
-  svg { width: 100px; height: 80px; }
+  body{background:#111827;color:#e5e7eb;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px}
+  .card{background:#1f2937;padding:32px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:700px;width:100%;text-align:center}
+  h1,h2,h3{margin:0 0 12px}
+  select,input{background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:8px;padding:10px 12px;font-size:16px;width:100%;box-sizing:border-box}
+  .btn{background:#374151;color:#e5e7eb;border:none;border-radius:8px;padding:12px 0;font-size:16px;cursor:pointer;transition:background .2s,color .2s;width:100%}
+  .btn:hover{background:#2563eb;color:#fff}
+  .btn.selected{background:#3b82f6;color:#fff}
+  .btn-group{display:flex;gap:12px;justify-content:center;margin-bottom:12px}
+  .hidden{display:none !important}
+  .zadani{background:#374151;padding:12px;border-radius:8px;font-size:15px;text-align:left;margin-bottom:16px}
+  .zapis-radek{display:grid;grid-template-columns:1.1fr 1.2fr 1.2fr auto;gap:12px;align-items:center}
+  .zapis-list{display:grid;gap:14px;margin-top:10px}
+  .checkbox{transform:scale(1.35)}
+  .zapis-controls{display:grid;gap:12px;margin-top:16px}
+  .alert{margin-top:20px;padding:12px;border-radius:8px;background:#1e3a8a;color:#bfdbfe;text-align:left}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .link{background:none;border:none;color:#93c5fd;cursor:pointer;padding:8px;border-radius:8px}
+  .link:hover{text-decoration:underline}
+  .extra-buttons{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+  svg{width:100px;height:80px}
 
-  /* MODÁLNÍ KALKULAČKA */
-  .modal-bg {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-  .calc-modal {
-    background-color: #1f2937;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    width: 300px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-  }
-  .calc-display, .calc-last {
-    width: 100%;
-    background-color: #111827;
-    border: 1px solid #374151;
-    border-radius: 8px;
-    color: #e5e7eb;
-    text-align: right;
-    font-size: 1.2rem;
-    padding: 8px;
-    min-height: 2em;
-    margin-bottom: 6px;
-  }
-  .calc-last { font-size: 0.9rem; color: #9ca3af; min-height: 1.5em; }
-  .calc-buttons {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    width: 100%;
-    margin-top: 8px;
-  }
-  .calc-btn {
-    background-color: #374151;
-    color: #e5e7eb;
-    border: none;
-    border-radius: 6px;
-    padding: 10px;
-    font-size: 1.1rem;
-    cursor: pointer;
-  }
-  .calc-btn:hover { background-color: #2563eb; color: #fff; }
-  .close-calc {
-    position: absolute;
-    top: 8px;
-    right: 12px;
-    background: none;
-    color: #9ca3af;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-  }
-  .copied-msg {
-    margin-top: 8px;
-    color: #93c5fd;
-    font-size: 0.9rem;
-  }
+  /* Modal kalkulačka */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:1000}
+  .calc-modal{background:#1f2937;padding:20px;border-radius:12px;box-shadow:0 0 20px rgba(0,0,0,.5);width:300px;display:flex;flex-direction:column;align-items:center;position:relative}
+  .calc-display,.calc-last{width:100%;background:#111827;border:1px solid #374151;border-radius:8px;color:#e5e7eb;text-align:right;font-size:1.2rem;padding:8px;min-height:2em;margin-bottom:6px}
+  .calc-last{font-size:.9rem;color:#9ca3af;min-height:1.5em}
+  .calc-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;margin-top:8px}
+  .calc-btn{background:#374151;color:#e5e7eb;border:none;border-radius:6px;padding:10px;font-size:1.1rem;cursor:pointer}
+  .calc-btn:hover{background:#2563eb;color:#fff}
+  .close-calc{position:absolute;top:8px;right:12px;background:none;color:#9ca3af;border:none;font-size:1.2rem;cursor:pointer}
+  .copied-msg{margin-top:8px;color:#93c5fd;font-size:.9rem}
 </style>
 </head>
 <body>
@@ -182,7 +68,7 @@
 <div class="card hidden" id="practice">
   <div class="topbar">
     <h2 id="title">Práce – Lehká</h2>
-    <div style="display:flex; gap:10px;">
+    <div style="display:flex;gap:10px;">
       <button class="link" id="newTaskBtn">Nový příklad</button>
       <button class="link" id="backBtn">Zpět</button>
     </div>
@@ -217,11 +103,11 @@
     </div>
   </div>
 
-  <div id="vypocet" class="hidden stack-md">
+  <div id="vypocet" class="hidden">
     <h3>Výpočet</h3>
-    <input placeholder="W = F * s">
-    <input placeholder="W = 1500 * 50">
-    <input placeholder="W = 75000 J">
+    <input placeholder="W = F * s" style="margin-bottom:8px">
+    <input placeholder="W = 1500 * 50" style="margin-bottom:8px">
+    <input placeholder="W = 75000 J" style="margin-bottom:8px">
     <button class="btn" id="checkVypocetBtn">Zkontrolovat výpočet</button>
   </div>
 
@@ -229,9 +115,9 @@
 </div>
 
 <!-- MODÁLNÍ KALKULAČKA -->
-<div id="calcModal" class="modal-bg hidden">
-  <div class="calc-modal">
-    <button class="close-calc" id="closeCalc">✖</button>
+<div id="calcModal" class="modal-bg hidden" aria-hidden="true">
+  <div class="calc-modal" role="dialog" aria-modal="true" aria-label="Kalkulačka">
+    <button class="close-calc" id="closeCalc" aria-label="Zavřít">✖</button>
     <div class="calc-last" id="calcLast"></div>
     <div class="calc-display" id="calcDisplay"></div>
     <div class="calc-buttons" id="calcButtons"></div>
@@ -241,81 +127,259 @@
 </div>
 
 <script>
-// Bezpečný parser výrazu místo eval()
-function safeCalc(expr) {
-  try {
-    // povolené znaky
-    if (!/^[0-9+\\-*/.()\\s]+$/.test(expr)) return NaN;
-    return new Function('return ' + expr)();
-  } catch { return NaN; }
+/* =========================
+   Pomocné funkce + parser
+   ========================= */
+function $(id){return document.getElementById(id);}
+
+// Tokenizace: čísla (i s tečkou), operátory, závorky
+function tokenize(expr){
+  const tokens=[]; let i=0;
+  while(i<expr.length){
+    const ch=expr[i];
+    if(/\s/.test(ch)){ i++; continue; }
+    if(/[0-9.]/.test(ch)){
+      let num=ch; i++;
+      while(i<expr.length && /[0-9.]/.test(expr[i])){ num+=expr[i++]; }
+      tokens.push({type:'num', value:num});
+      continue;
+    }
+    if(/[+\-*/()]/.test(ch)){ tokens.push({type:'op', value:ch}); i++; continue; }
+    // nepovolený znak
+    return null;
+  }
+  return tokens;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const q = id => document.getElementById(id);
-  const home = q('home'), practice = q('practice'), feedback = q('feedback'),
-        vypocet = q('vypocet'), zapis = q('zapis'), zapisList = q('zapis-list'),
-        calcModal = q('calcModal'), calcDisplay = q('calcDisplay'),
-        calcLast = q('calcLast'), copyResultBtn = q('copyResultBtn'),
-        copiedMsg = q('copiedMsg'), formulaDisplay = q('formulaDisplay');
-  let expression='', lastExpression='';
+// Předzpracování pro unární minus: "-3+5" -> "0-3+5", "(-2)" -> "(0-2)"
+function normalizeUnary(expr){
+  let out=expr.replace(/\s+/g,'');
+  out = out.replace(/^\-/,'0-');
+  out = out.replace(/\(\-/g,'(0-');
+  return out;
+}
 
-  // Úvod
-  document.querySelectorAll('#moduleGroup .btn').forEach(btn =>
-    btn.onclick = () => {
+// Shunting-yard: infix -> RPN
+function toRPN(tokens){
+  const out=[]; const stack=[];
+  const prec={'+':1,'-':1,'*':2,'/':2};
+  const leftAssoc={'+':true,'-':true,'*':true,'/':true};
+  for(const t of tokens){
+    if(t.type==='num'){ out.push(t); }
+    else if(t.type==='op' && /[+\-*/]/.test(t.value)){
+      while(stack.length){
+        const top=stack[stack.length-1];
+        if(top.type==='op' && /[+\-*/]/.test(top.value) &&
+           ((leftAssoc[t.value] && prec[t.value] <= prec[top.value]) ||
+            (!leftAssoc[t.value] && prec[t.value] < prec[top.value]))){
+          out.push(stack.pop());
+        } else break;
+      }
+      stack.push(t);
+    } else if(t.type==='op' && t.value==='('){
+      stack.push(t);
+    } else if(t.type==='op' && t.value===')'){
+      let found=false;
+      while(stack.length){
+        const top=stack.pop();
+        if(top.type==='op' && top.value==='('){ found=true; break; }
+        out.push(top);
+      }
+      if(!found) return null; // chybějící '('
+    }
+  }
+  while(stack.length){
+    const top=stack.pop();
+    if(top.type==='op' && (top.value==='('||top.value===')')) return null;
+    out.push(top);
+  }
+  return out;
+}
+
+// Vyhodnocení RPN
+function evalRPN(rpn){
+  const st=[];
+  for(const t of rpn){
+    if(t.type==='num'){ st.push(parseFloat(t.value)); }
+    else{
+      const b=st.pop(), a=st.pop();
+      if(a===undefined||b===undefined) return NaN;
+      switch(t.value){
+        case '+': st.push(a+b); break;
+        case '-': st.push(a-b); break;
+        case '*': st.push(a*b); break;
+        case '/': st.push(b===0? NaN : a/b); break;
+        default: return NaN;
+      }
+    }
+  }
+  return st.length===1? st[0] : NaN;
+}
+
+function safeCalc(expr){
+  const norm=normalizeUnary(expr);
+  const tokens=tokenize(norm); if(!tokens) return NaN;
+  const rpn=toRPN(tokens); if(!rpn) return NaN;
+  return evalRPN(rpn);
+}
+
+/* =========================
+   Aplikace
+   ========================= */
+(function init(){
+  const home=$('home'), practice=$('practice'), feedback=$('feedback'),
+        vypocet=$('vypocet'), zapis=$('zapis'), zapisList=$('zapis-list');
+
+  // Úvodní výběr
+  document.querySelectorAll('#moduleGroup .btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
       document.querySelectorAll('#moduleGroup .btn').forEach(x=>x.classList.remove('selected'));
       btn.classList.add('selected');
-      window.moduleType = btn.dataset.value;
+      window._module=btn.dataset.value;
     });
-  document.querySelectorAll('#difficultyGroup .btn').forEach(btn =>
-    btn.onclick = () => {
+  });
+  document.querySelectorAll('#difficultyGroup .btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
       document.querySelectorAll('#difficultyGroup .btn').forEach(x=>x.classList.remove('selected'));
       btn.classList.add('selected');
-      window.difficulty = btn.dataset.value;
+      window._difficulty=btn.dataset.value;
     });
-  q('startBtn').onclick = () => {
-    const topic = q('topic').value;
-    if (!topic || !window.moduleType || !window.difficulty) return alert('Vyber vše');
-    home.classList.add('hidden'); practice.classList.remove('hidden'); resetZapis();
-  };
-  q('backBtn').onclick = () => { practice.classList.add('hidden'); home.classList.remove('hidden'); };
-  q('newTaskBtn').onclick = () => { feedback.classList.add('hidden'); resetZapis(); };
-  q('formulaBtn').onclick = () => formulaDisplay.classList.toggle('hidden');
+  });
+  $('startBtn').addEventListener('click',()=>{
+    const topic=$('topic').value;
+    if(!topic||!window._module||!window._difficulty){ alert('Vyber vše: téma, modul i obtížnost'); return; }
+    home.classList.add('hidden');
+    practice.classList.remove('hidden');
+    resetZapis();
+  });
 
-  // zápis
-  function createSelect(o){const s=document.createElement('select');o.forEach(v=>{const opt=document.createElement('option');opt.textContent=v;s.appendChild(opt);});return s;}
-  function makeRow(){const r=document.createElement('div');r.className='zapis-radek';
-    const v=createSelect(['s','F','W']);const i=document.createElement('input');i.placeholder='Hodnota';
-    const u=createSelect(['m','cm','km','N','kN','J','kJ']);const c=document.createElement('input');c.type='checkbox';
-    c.onchange=()=>{if(c.checked){i.value='?';r.parentNode.querySelectorAll('input[type=checkbox]').forEach(x=>{if(x!==c)x.checked=false;});}else if(i.value==='?')i.value='';};
-    r.append(v,i,u,c);return r;}
-  function resetZapis(){zapisList.innerHTML='';for(let i=0;i<3;i++)zapisList.append(makeRow());}
-  q('addRowBtn').onclick = () => zapisList.append(makeRow());
-  q('checkZapisBtn').onclick = () => { feedback.textContent='Zkontroluj jednotky'; feedback.classList.remove('hidden'); vypocet.classList.remove('hidden'); zapis.classList.add('hidden'); };
-  q('checkVypocetBtn').onclick = () => { feedback.textContent='Správně!'; feedback.classList.remove('hidden'); };
+  $('backBtn').addEventListener('click',()=>{
+    practice.classList.add('hidden');
+    home.classList.remove('hidden');
+  });
 
-  // Kalkulačka
-  const btns = ['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+','←','C'];
-  const grid = q('calcButtons');
-  btns.forEach(b => {const el=document.createElement('button');el.className='calc-btn';el.textContent=b;grid.appendChild(el);});
-  grid.onclick = e => {
-    if(!e.target.classList.contains('calc-btn'))return;
-    const v=e.target.textContent;
-    if(v==='C'){expression='';calcDisplay.textContent='';}
-    else if(v==='←'){expression=expression.slice(0,-1);calcDisplay.textContent=expression;}
-    else if(v==='='){const res=safeCalc(expression);if(!isNaN(res)){lastExpression=expression+' = '+res;expression=res.toString();calcLast.textContent=lastExpression;calcDisplay.textContent=expression;}else{calcDisplay.textContent='Chyba';expression='';}}
-    else{expression+=v;calcDisplay.textContent=expression;}
-  };
-  document.onkeydown = e => {
-    if(calcModal.classList.contains('hidden'))return;
-    if(/[0-9+\\-*/.]/.test(e.key)){expression+=e.key;calcDisplay.textContent=expression;}
-    else if(e.key==='Enter'){const res=safeCalc(expression);if(!isNaN(res)){lastExpression=expression+' = '+res;expression=res.toString();calcLast.textContent=lastExpression;calcDisplay.textContent=expression;}else{calcDisplay.textContent='Chyba';expression='';}}
-    else if(e.key==='Backspace'){expression=expression.slice(0,-1);calcDisplay.textContent=expression;}
-  };
-  q('calcBtn').onclick = () => {calcModal.classList.remove('hidden');copiedMsg.classList.add('hidden');};
-  q('closeCalc').onclick = () => calcModal.classList.add('hidden');
-  calcModal.onclick = e => {if(e.target===calcModal)calcModal.classList.add('hidden');};
-  copyResultBtn.onclick = () => {navigator.clipboard.writeText(calcDisplay.textContent||'');copiedMsg.classList.remove('hidden');};
-});
+  $('newTaskBtn').addEventListener('click',()=>{
+    feedback.classList.add('hidden');
+    vypocet.classList.add('hidden');
+    zapis.classList.remove('hidden');
+    resetZapis();
+  });
+
+  $('formulaBtn').addEventListener('click',()=>{
+    $('formulaDisplay').classList.toggle('hidden');
+  });
+
+  $('helpBtn').addEventListener('click',()=>{
+    const empty = Array.from(zapisList.children).find(r => r.querySelector('input').value==='');
+    if(empty){
+      const input = empty.querySelector('input');
+      input.value = '100';
+      feedback.textContent = 'Nápověda: doplněna vzorová hodnota, aby šel výpočet dokončit.';
+      feedback.classList.remove('hidden');
+    }else{
+      feedback.textContent = 'Všechny řádky už jsou vyplněné.';
+      feedback.classList.remove('hidden');
+    }
+  });
+
+  // Zápis – řádky
+  function selectEl(opts, def){
+    const s=document.createElement('select');
+    opts.forEach(o=>{const op=document.createElement('option');op.textContent=o; if(o===def) op.selected=true; s.appendChild(op);});
+    return s;
+  }
+  function makeRow(vel='s', val='', unit='m'){
+    const r=document.createElement('div'); r.className='zapis-radek';
+    const sVel = selectEl(['s','F','W'], vel);
+    const inp  = document.createElement('input'); inp.placeholder='Hodnota'; inp.value=val;
+    const sUni = selectEl(['m','cm','km','N','kN','J','kJ'], unit);
+    const cb   = document.createElement('input'); cb.type='checkbox'; cb.className='checkbox'; cb.title='Hledaná veličina';
+    cb.addEventListener('change',()=>{
+      if(cb.checked){
+        // odškrtnout ostatní
+        zapisList.querySelectorAll('input[type=checkbox]').forEach(x=>{ if(x!==cb) x.checked=false; });
+        inp.value='?';
+      }else if(inp.value==='?'){ inp.value=''; }
+    });
+    r.append(sVel, inp, sUni, cb);
+    return r;
+  }
+  function resetZapis(){
+    zapisList.innerHTML='';
+    zapisList.append(makeRow('F','', 'N'), makeRow('s','', 'm'), makeRow('W','', 'J'));
+  }
+  $('addRowBtn').addEventListener('click',()=>zapisList.append(makeRow()));
+  $('checkZapisBtn').addEventListener('click',()=>{
+    feedback.textContent='Zkontroluj jednotky – musí být v základních jednotkách (N, m, J).';
+    feedback.classList.remove('hidden');
+    vypocet.classList.remove('hidden');
+    zapis.classList.add('hidden');
+  });
+  $('checkVypocetBtn').addEventListener('click',()=>{
+    feedback.textContent='Správně! Práce je 75 000 J. Skvělá práce!';
+    feedback.classList.remove('hidden');
+  });
+
+  // Kalkulačka (bez eval)
+  const calcModal=$('calcModal'), calcDisplay=$('calcDisplay'), calcLast=$('calcLast'),
+        calcButtons=$('calcButtons'), copyBtn=$('copyResultBtn'), copiedMsg=$('copiedMsg');
+  let expr='', last='';
+
+  function openCalc(){ calcModal.classList.remove('hidden'); copiedMsg.classList.add('hidden'); }
+  function closeCalc(){ calcModal.classList.add('hidden'); }
+
+  $('calcBtn').addEventListener('click', openCalc);
+  $('closeCalc').addEventListener('click', closeCalc);
+  calcModal.addEventListener('click',e=>{ if(e.target===calcModal) closeCalc(); });
+
+  const labels=['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+','←','C'];
+  labels.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='calc-btn'; b.textContent=t;
+    calcButtons.appendChild(b);
+  });
+
+  calcButtons.addEventListener('click',e=>{
+    if(!e.target.classList.contains('calc-btn')) return;
+    press(e.target.textContent);
+  });
+  document.addEventListener('keydown',e=>{
+    if(calcModal.classList.contains('hidden')) return;
+    if(/[0-9+\-*/.()]/.test(e.key)) { expr+=e.key; calcDisplay.textContent=expr; }
+    else if(e.key==='Enter'){ compute(); }
+    else if(e.key==='Backspace'){ expr = expr.slice(0,-1); calcDisplay.textContent=expr; }
+    else if(e.key==='Escape'){ closeCalc(); }
+  });
+
+  function press(v){
+    if(v==='C'){ expr=''; calcDisplay.textContent=''; return; }
+    if(v==='←'){ expr=expr.slice(0,-1); calcDisplay.textContent=expr; return; }
+    if(v==='='){ compute(); return; }
+    expr += v; calcDisplay.textContent = expr;
+  }
+  function compute(){
+    const res = safeCalc(expr);
+    if(isNaN(res)){ calcDisplay.textContent='Chyba'; expr=''; return; }
+    last = expr + ' = ' + res;
+    expr = String(res);
+    calcLast.textContent = last;
+    calcDisplay.textContent = expr;
+  }
+  copyBtn.addEventListener('click', async ()=>{
+    const text = calcDisplay.textContent || '';
+    try{
+      if(navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(text);
+      }else{
+        // fallback
+        const ta=document.createElement('textarea');
+        ta.value=text; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      }
+      copiedMsg.classList.remove('hidden');
+    }catch{ /* ignore */ }
+  });
+})();
 </script>
 </body>
 </html>
