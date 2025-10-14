@@ -1,80 +1,180 @@
-// =========================
-// Pomocné funkce + parser
-// =========================
-function $(id){return document.getElementById(id);}
-
-// Tokenizace: čísla (i s tečkou), operátory, závorky
-function tokenize(expr){
-  const tokens=[]; let i=0;
-  while(i<expr.length){
-    const ch=expr[i];
-    if(/\s/.test(ch)){ i++; continue; }
-    if(/[0-9.]/.test(ch)){
-      let num=ch; i++;
-      while(i<expr.length && /[0-9.]/.test(expr[i])){ num+=expr[i++]; }
-      tokens.push({type:'num', value:num});
-      continue;
-    }
-    if(/[+\-*/()]/.test(ch)){ tokens.push({type:'op', value:ch}); i++; continue; }
-    return null;
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Procvičování fyziky</title>
+<style>
+  :root{
+    --bg:#111827;         /* pozadí stránky */
+    --card:#1f2937;       /* hlavní karta */
+    --group:#2a3446;      /* vnořené skupiny na úvodní stránce */
+    --input:#111827;
+    --border:#374151;
+    --text:#e5e7eb;
+    --muted:#9ca3af;
+    --primary:#2563eb;
+    --primary-2:#3b82f6;
+    --btn:#374151;
+    --ok:#60a5fa;
+    --alert-bg:#1e3a8a;
+    --alert-text:#bfdbfe;
+    --op:#475569;         /* tlačítka operátorů */
+    --spec:#334155;       /* tlačítka speciálních funkcí */
   }
-  return tokens;
-}
+  body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px}
+  .card{background:var(--card);padding:32px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:760px;width:100%;text-align:center}
+  h1,h2,h3{margin:0 0 12px}
+  .stack{display:grid;gap:14px}
+  .stack-lg{display:grid;gap:18px}
+  select,input{background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:16px;width:100%;box-sizing:border-box}
+  .btn{background:var(--btn);color:var(--text);border:none;border-radius:8px;padding:12px 0;font-size:16px;cursor:pointer;transition:background .2s,color .2s;width:100%}
+  .btn:hover{background:var(--primary);color:#fff}
+  .btn.selected{background:var(--primary-2);color:#fff}
+  .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .hidden{display:none !important}
+  .muted{color:var(--muted)}
+  .zadani{background:var(--btn);padding:12px;border-radius:8px;font-size:15px;text-align:left;margin-bottom:16px}
+  .zapis-radek{display:grid;grid-template-columns:1.1fr 1.2fr 1.2fr auto;gap:12px;align-items:center}
+  .zapis-list{display:grid;gap:14px;margin-top:10px}
+  .checkbox{transform:scale(1.35)}
+  .zapis-controls{display:grid;gap:12px;margin-top:16px}
+  .alert{margin-top:20px;padding:12px;border-radius:8px;background:var(--alert-bg);color:var(--alert-text);text-align:left}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .link{background:none;border:none;color:#93c5fd;cursor:pointer;padding:8px;border-radius:8px}
+  .link:hover{text-decoration:underline}
+  .extra-buttons{display:flex;gap:10px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
+  svg{width:100%;max-width:420px;height:auto}
 
-function normalizeUnary(expr){
-  let out=expr.replace(/\s+/g,'');
-  out = out.replace(/^\-/,'0-');
-  out = out.replace(/\(\-/g,'(0-');
-  return out;
-}
+  /* úvodní skupiny (vzhledový obdélník) */
+  .group{background:var(--group);padding:16px;border-radius:12px;text-align:left}
+  .group h3{margin-bottom:10px}
 
-function toRPN(tokens){
-  const out=[]; const stack=[];
-  const prec={'+':1,'-':1,'*':2,'/':2};
-  const leftAssoc={'+':true,'-':true,'*':true,'/':true};
-  for(const t of tokens){
-    if(t.type==='num'){ out.push(t); }
-    else if(t.type==='op' && /[+\-*/]/.test(t.value)){
-      while(stack.length){
-        const top=stack[stack.length-1];
-        if(top.type==='op' && /[+\-*/]/.test(top.value) &&
-           ((leftAssoc[t.value] && prec[t.value] <= prec[top.value]) ||
-            (!leftAssoc[t.value] && prec[t.value] < prec[top.value]))){
-          out.push(stack.pop());
-        } else break;
-      }
-      stack.push(t);
-    } else if(t.type==='op' && t.value==='('){
-      stack.push(t);
-    } else if(t.type==='op' && t.value===')'){
-      let found=false;
-      while(stack.length){
-        const top=stack.pop();
-        if(top.type==='op' && top.value==='('){ found=true; break; }
-        out.push(top);
-      }
-      if(!found) return null;
-    }
-  }
-  while(stack.length){
-    const top=stack.pop();
-    if(top.type==='op' && (top.value==='('||top.value===')')) return null;
-    out.push(top);
-  }
-  return out;
-}
+  /* Modal kalkulačka */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:1000}
+  .calc-modal{background:var(--card);padding:20px;border-radius:12px;box-shadow:0 0 20px rgba(0,0,0,.5);width:320px;display:flex;flex-direction:column;align-items:center;position:relative}
+  .calc-last,.calc-display{width:100%;background:var(--input);border:1px solid var(--border);border-radius:8px;color:var(--text);text-align:right;font-size:1.2rem;padding:8px;min-height:2em;margin-bottom:8px}
+  .calc-last{font-size:.9rem;color:var(--muted);min-height:1.5em;margin-bottom:4px}
+  .calc-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%;margin-top:8px}
+  .calc-btn{background:var(--btn);color:var(--text);border:none;border-radius:8px;padding:12px;font-size:1.05rem;cursor:pointer}
+  .calc-btn:hover{background:var(--primary);color:#fff}
+  .calc-btn.op{background:var(--op)}
+  .calc-btn.spec{background:var(--spec)}
+  .calc-btn.eq{background:var(--primary-2);color:#fff}
+  .close-calc{position:absolute;top:8px;right:12px;background:none;color:var(--muted);border:none;font-size:1.2rem;cursor:pointer}
+  .copied-msg{margin-top:8px;color:var(--ok);font-size:.9rem}
 
-function evalRPN(rpn){
-  const st=[];
-  for(const t of rpn){
-    if(t.type==='num'){ st.push(parseFloat(t.value)); }
-    else{
-      const b=st.pop(), a=st.pop();
-      if(a===undefined||b===undefined) return NaN;
-      switch(t.value){
-        case '+': st.push(a+b); break;
-        case '-': st.push(a-b); break;
-        case '*': st.push(a*b); break;
-        case '/': st.push(b===0? NaN : a/b); break;
-        default: return NaN;
-      }
+  /* boxy pod zadáním */
+  #formulaDisplay,#sceneDisplay{background:#0f172a33;border:1px solid #334155;border-radius:10px;padding:12px}
+</style>
+</head>
+<body>
+
+<!-- ÚVOD -->
+<div class="card stack-lg" id="home">
+  <h1>Procvičování fyziky</h1>
+
+  <div class="group">
+    <h3>Téma</h3>
+    <select id="topic">
+      <option value="">Vyber téma...</option>
+      <option value="Práce">Práce</option>
+      <option disabled>Výkon (brzy)</option>
+      <option disabled>Potenciální energie (brzy)</option>
+    </select>
+  </div>
+
+  <div class="group">
+    <h3>Modul</h3>
+    <div class="btn-row" id="moduleGroup">
+      <button class="btn" data-value="Procvičování">Procvičování</button>
+      <button class="btn" data-value="Test">Test</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <h3>Obtížnost</h3>
+    <div class="btn-row-3" id="difficultyGroup">
+      <button class="btn" data-value="Lehká">Lehká</button>
+      <button class="btn" data-value="Normální">Normální</button>
+      <button class="btn" data-value="Výzva">Výzva</button>
+    </div>
+  </div>
+
+  <button class="btn" id="startBtn">Spustit</button>
+  <div class="muted">Tip: Aplikace běží z GitHub Pages; změny se projeví po „Commit changes“.</div>
+</div>
+
+<!-- PROCVIČOVÁNÍ -->
+<div class="card hidden" id="practice">
+  <div class="topbar">
+    <h2 id="title">Práce – Lehká</h2>
+    <div style="display:flex;gap:10px;">
+      <button class="link" id="newTaskBtn">Nový příklad</button>
+      <button class="link" id="backBtn">Zpět</button>
+    </div>
+  </div>
+
+  <div class="zadani">
+    <strong>Zadání:</strong> <span id="zadani-text">Jakou práci vykoná síla 1500 N působící na dráze 50 m?</span>
+  </div>
+
+  <div class="extra-buttons">
+    <button class="btn" id="calcBtn">Kalkulačka</button>
+    <button class="btn" id="formulaBtn">Vzorec</button>
+    <button class="btn" id="sceneBtn">Obrázek</button>
+    <button class="btn" id="helpBtn">Nápověda</button>
+  </div>
+
+  <!-- vzorec v trojúhelníku: vodorovná střední příčka, nahoře W, dole F·s -->
+  <div id="formulaDisplay" class="hidden">
+    <svg viewBox="0 0 220 140" aria-label="Trojúhelník vzorce práce">
+      <!-- rovnoramenný trojúhelník -->
+      <polygon points="110,10 20,120 200,120" fill="none" stroke="#60a5fa" stroke-width="2"/>
+      <!-- VODOROVNÁ střední příčka (polovina výšky) -->
+      <line x1="50" y1="65" x2="170" y2="65" stroke="#60a5fa" stroke-width="2"/>
+      <!-- popisky -->
+      <text x="103" y="40" fill="#60a5fa" font-size="20">W</text>
+      <text x="85" y="102" fill="#60a5fa" font-size="18">F · s</text>
+    </svg>
+  </div>
+
+  <!-- jednoduchý obrázek situace -->
+  <div id="sceneDisplay" class="hidden"></div>
+
+  <div id="zapis">
+    <h3>Zápis</h3>
+    <div id="zapis-list" class="zapis-list"></div>
+    <div class="zapis-controls">
+      <button class="btn" id="addRowBtn">+ Přidat veličinu</button>
+      <button class="btn" id="checkZapisBtn">Zkontrolovat zápis</button>
+    </div>
+  </div>
+
+  <div id="vypocet" class="hidden">
+    <h3>Výpočet</h3>
+    <input placeholder="W = F * s" style="margin-bottom:8px">
+    <input placeholder="W = 1500 * 50" style="margin-bottom:8px">
+    <input placeholder="W = 75000 J" style="margin-bottom:8px">
+    <button class="btn" id="checkVypocetBtn">Zkontrolovat výpočet</button>
+  </div>
+
+  <div class="alert hidden" id="feedback"></div>
+</div>
+
+<!-- MODÁLNÍ KALKULAČKA -->
+<div id="calcModal" class="modal-bg hidden" aria-hidden="true">
+  <div class="calc-modal" role="dialog" aria-modal="true" aria-label="Kalkulačka">
+    <button class="close-calc" id="closeCalc" aria-label="Zavřít">✖</button>
+    <div class="calc-last" id="calcLast"></div>
+    <div class="calc-display" id="calcDisplay"></div>
+    <div class="calc-buttons" id="calcButtons"></div>
+    <button class="btn" id="copyResultBtn">Kopírovat výsledek</button>
+    <div class="copied-msg hidden" id="copiedMsg">✅ Zkopírováno! Vložte pomocí Ctrl+V.</div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
