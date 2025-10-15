@@ -6,8 +6,8 @@
 <title>Procvičování fyziky – Práce</title>
 <style>
   :root {
-    --bg:#111827; --card:#1f2937; --group:#2a3446; --input:#111827; --border:#374151;
-    --text:#e5e7eb; --muted:#9ca3af; --primary:#2563eb; --primary-2:#3b82f6;
+    --bg:#111827; --card:#1f2937; --group:#2a3446; --input:#111827;
+    --border:#374151; --text:#e5e7eb; --muted:#9ca3af; --primary:#2563eb;
     --btn:#374151; --alert-bg:#1e3a8a; --alert-text:#bfdbfe;
   }
   body {
@@ -31,9 +31,77 @@
   }
   h1,h2,h3 { margin:0 0 12px; }
   .group { background:var(--group); padding:16px; border-radius:12px; margin-bottom:16px; }
-  .btn { background:var(--btn); color:var(--text); border:none; border-radius:8px; padding:12px; font-size:16px; cursor:pointer; transition:background .2s; width:100%; }
+  .btn { background:var(--btn); color:var(--text); border:none; border-radius:8px;
+         padding:12px; font-size:16px; cursor:pointer; transition:background .2s; width:100%; }
   .btn:hover { background:var(--primary); color:#fff; }
-  .btn.selected { background:var(--primary-2); color:#fff; }
-  .btn-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .btn-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-  select,input { ba
+  .hidden { display:none !important; }
+  .warning { background:#7f1d1d; color:#fee2e2; padding:12px; border-radius:8px; margin-top:16px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Úvod -->
+  <div class="card" id="home">
+    <h1>Procvičování fyziky</h1>
+    <div class="group">
+      <h3>Modul</h3>
+      <div class="btn-row" id="moduleGroup">
+        <button class="btn" data-value="Procvičování">Procvičování</button>
+        <button class="btn" data-value="Test">Test</button>
+      </div>
+    </div>
+    <div class="group">
+      <h3>Obtížnost</h3>
+      <div class="btn-row" id="difficultyGroup">
+        <button class="btn" data-value="Lehká">Lehká</button>
+        <button class="btn" data-value="Normální">Normální</button>
+        <button class="btn" data-value="Výzva">Výzva</button>
+      </div>
+    </div>
+    <button class="btn" id="startBtn">Spustit</button>
+  </div>
+
+  <!-- Modul procvičování -->
+  <div class="card hidden" id="practice">
+    <h2>Práce</h2>
+    <p>Zde se objeví cvičení po kliknutí na „Spustit“.</p>
+  </div>
+</div>
+
+<noscript>
+  <div class="card warning">
+    ⚠️ Aplikace vyžaduje JavaScript.  
+    Prosím, povolte ho nebo obnovte stránku.
+  </div>
+</noscript>
+
+<script>
+  // základní test, zda běží skript
+  document.addEventListener("DOMContentLoaded", ()=>{
+    console.log("✅ Inline JS běží");
+    const start=document.getElementById("startBtn");
+    const home=document.getElementById("home");
+    const practice=document.getElementById("practice");
+    start.addEventListener("click",()=>{
+      home.classList.add("hidden");
+      practice.classList.remove("hidden");
+    });
+  });
+
+  // pojistka – pokud se do 2 s nespustí JS, zobrazí varování
+  setTimeout(()=>{
+    if(!document.getElementById("startBtn").onclick &&
+       !window.scriptInitialized){
+      const warn=document.createElement("div");
+      warn.className="card warning";
+      warn.innerHTML="⚠️ Nepodařilo se načíst aplikaci.<br>Obnovte stránku (Ctrl + F5) nebo zkontrolujte GitHub Pages nastavení.";
+      document.body.innerHTML="";
+      document.body.appendChild(warn);
+    }
+  },2000);
+</script>
+
+<script src="script.js?v=9" defer></script>
+</body>
+</html>
