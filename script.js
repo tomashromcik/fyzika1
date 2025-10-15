@@ -1,4 +1,4 @@
-console.log("script v7: start");
+console.log("script v9: start");
 
 // ——— kalkulačka bez eval (beze změn jádra) ———
 function tokenize(e){const t=[];let i=0;while(i<e.length){const c=e[i];if(/\s/.test(c)){i++;continue}if(/[0-9.]/.test(c)){let n=c;i++;while(i<e.length&&/[0-9.]/.test(e[i])){n+=e[i++]}t.push({type:"num",value:n});continue}if(/[+\-*/()]/.test(c)){t.push({type:"op",value:c});i++;continue}return null}return t}
