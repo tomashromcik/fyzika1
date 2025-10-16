@@ -5,103 +5,180 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Procvičování fyziky – Práce</title>
 <style>
-  :root {
-    --bg:#111827; --card:#1f2937; --group:#2a3446; --input:#111827;
-    --border:#374151; --text:#e5e7eb; --muted:#9ca3af; --primary:#2563eb;
-    --btn:#374151; --alert-bg:#1e3a8a; --alert-text:#bfdbfe;
-  }
   body {
-    background:var(--bg);
-    color:var(--text);
-    font-family:Inter,system-ui,sans-serif;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
-    margin:0;
-    padding:16px;
+    font-family: Arial, sans-serif;
+    background: #f4f4f9;
+    color: #222;
+    margin: 0;
+    padding: 0;
   }
-  .card {
-    background:var(--card);
-    border-radius:16px;
-    box-shadow:0 4px 20px rgba(0,0,0,.3);
-    padding:32px;
-    width:100%;
-    max-width:760px;
+  .container {
+    max-width: 800px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px 30px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
   }
-  h1,h2,h3 { margin:0 0 12px; }
-  .group { background:var(--group); padding:16px; border-radius:12px; margin-bottom:16px; }
-  .btn { background:var(--btn); color:var(--text); border:none; border-radius:8px;
-         padding:12px; font-size:16px; cursor:pointer; transition:background .2s; width:100%; }
-  .btn:hover { background:var(--primary); color:#fff; }
-  .hidden { display:none !important; }
-  .warning { background:#7f1d1d; color:#fee2e2; padding:12px; border-radius:8px; margin-top:16px; }
+  h1, h2, h3 { text-align: center; }
+  .group { margin: 20px 0; text-align: center; }
+  .btn {
+    display: inline-block;
+    margin: 8px;
+    padding: 12px 20px;
+    font-size: 16px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .btn:hover { background: #1d4ed8; }
+  .hidden { display: none; }
+
+  .zapis-row {
+    display: grid;
+    grid-template-columns: 100px 20px 1fr 20px 120px 40px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  select, input[type=text] {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+  }
+  input[type=checkbox] { transform: scale(1.3); }
+  .alert {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-radius: 6px;
+    padding: 10px;
+    margin-top: 10px;
+  }
 </style>
 </head>
 <body>
 
-<div id="app">
-  <!-- Úvod -->
-  <div class="card" id="home">
-    <h1>Procvičování fyziky</h1>
-    <div class="group">
-      <h3>Modul</h3>
-      <div class="btn-row" id="moduleGroup">
-        <button class="btn" data-value="Procvičování">Procvičování</button>
-        <button class="btn" data-value="Test">Test</button>
-      </div>
-    </div>
-    <div class="group">
-      <h3>Obtížnost</h3>
-      <div class="btn-row" id="difficultyGroup">
-        <button class="btn" data-value="Lehká">Lehká</button>
-        <button class="btn" data-value="Normální">Normální</button>
-        <button class="btn" data-value="Výzva">Výzva</button>
-      </div>
-    </div>
-    <button class="btn" id="startBtn">Spustit</button>
+<div class="container" id="home">
+  <h1>Procvičování fyziky</h1>
+  <div class="group">
+    <h3>Vyber modul</h3>
+    <button class="btn" data-module="Procvičování">Procvičování</button>
+    <button class="btn" data-module="Test">Test</button>
   </div>
-
-  <!-- Modul procvičování -->
-  <div class="card hidden" id="practice">
-    <h2>Práce</h2>
-    <p>Zde se objeví cvičení po kliknutí na „Spustit“.</p>
+  <div class="group">
+    <h3>Vyber obtížnost</h3>
+    <button class="btn" data-diff="Lehká">Lehká</button>
+    <button class="btn" data-diff="Normální">Normální</button>
+    <button class="btn" data-diff="Výzva">Výzva</button>
+  </div>
+  <div class="group">
+    <button class="btn" id="startBtn">Spustit</button>
   </div>
 </div>
 
-<noscript>
-  <div class="card warning">
-    ⚠️ Aplikace vyžaduje JavaScript.  
-    Prosím, povolte ho nebo obnovte stránku.
+<div class="container hidden" id="practice">
+  <h2>Téma: Práce</h2>
+  <p><strong>Zadání:</strong> Jakou práci vykoná síla 1500 N působící na dráze 50 m?</p>
+
+  <h3>Zápis</h3>
+  <div id="zapis-list"></div>
+
+  <button class="btn" id="addRowBtn">+ Přidat veličinu</button>
+  <button class="btn" id="checkBtn">Zkontrolovat zápis</button>
+  <div id="feedback" class="alert hidden"></div>
+
+  <div class="group">
+    <button class="btn" id="backBtn">Zpět</button>
   </div>
-</noscript>
+</div>
 
 <script>
-  // základní test, zda běží skript
-  document.addEventListener("DOMContentLoaded", ()=>{
-    console.log("✅ Inline JS běží");
-    const start=document.getElementById("startBtn");
-    const home=document.getElementById("home");
-    const practice=document.getElementById("practice");
-    start.addEventListener("click",()=>{
-      home.classList.add("hidden");
-      practice.classList.remove("hidden");
+document.addEventListener("DOMContentLoaded", () => {
+  const home = document.getElementById("home");
+  const practice = document.getElementById("practice");
+  const zapisList = document.getElementById("zapis-list");
+  const feedback = document.getElementById("feedback");
+  const startBtn = document.getElementById("startBtn");
+  const addRowBtn = document.getElementById("addRowBtn");
+  const checkBtn = document.getElementById("checkBtn");
+  const backBtn = document.getElementById("backBtn");
+
+  let moduleSel = null;
+  let diffSel = null;
+
+  document.querySelectorAll("[data-module]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      document.querySelectorAll("[data-module]").forEach(b=>b.style.background="#2563eb");
+      btn.style.background="#1d4ed8";
+      moduleSel = btn.dataset.module;
+    });
+  });
+  document.querySelectorAll("[data-diff]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      document.querySelectorAll("[data-diff]").forEach(b=>b.style.background="#2563eb");
+      btn.style.background="#1d4ed8";
+      diffSel = btn.dataset.diff;
     });
   });
 
-  // pojistka – pokud se do 2 s nespustí JS, zobrazí varování
-  setTimeout(()=>{
-    if(!document.getElementById("startBtn").onclick &&
-       !window.scriptInitialized){
-      const warn=document.createElement("div");
-      warn.className="card warning";
-      warn.innerHTML="⚠️ Nepodařilo se načíst aplikaci.<br>Obnovte stránku (Ctrl + F5) nebo zkontrolujte GitHub Pages nastavení.";
-      document.body.innerHTML="";
-      document.body.appendChild(warn);
-    }
-  },2000);
+  startBtn.addEventListener("click", ()=>{
+    if(!moduleSel || !diffSel) { alert("Vyber modul i obtížnost."); return; }
+    home.classList.add("hidden");
+    practice.classList.remove("hidden");
+    buildRows();
+  });
+
+  backBtn.addEventListener("click", ()=>{
+    practice.classList.add("hidden");
+    home.classList.remove("hidden");
+    zapisList.innerHTML="";
+  });
+
+  function buildRows(){
+    zapisList.innerHTML="";
+    for(let i=0;i<3;i++){ zapisList.appendChild(createRow()); }
+  }
+
+  function createRow(){
+    const vars = diffSel === "Výzva" ? ["-","W","F","s","m","V","ρ"] : ["-","W","F","s"];
+    const unitsMap = { W:["-","J","kJ"], F:["-","N","kN"], s:["-","m","cm","km"], m:["-","kg"], V:["-","m³"], "ρ":["-","kg/m³","g/cm³"] };
+    const row = document.createElement("div");
+    row.className="zapis-row";
+
+    const sVar = document.createElement("select");
+    vars.forEach(v=>{ const o=document.createElement("option"); o.text=v; sVar.appendChild(o); });
+    const eq1 = document.createElement("span"); eq1.textContent="=";
+    const inp = document.createElement("input"); inp.type="text"; inp.placeholder="Hodnota";
+    const eq2 = document.createElement("span"); eq2.textContent="=";
+    const sUnit = document.createElement("select");
+    sUnit.appendChild(new Option("-","-"));
+    const cb = document.createElement("input"); cb.type="checkbox"; cb.title="Hledaná veličina";
+
+    sVar.addEventListener("change",()=>{
+      sUnit.innerHTML="";
+      (unitsMap[sVar.value]||["-"]).forEach(u=>sUnit.appendChild(new Option(u,u)));
+    });
+    cb.addEventListener("change",()=>{ inp.value = cb.checked ? "?" : ""; });
+
+    row.append(sVar,eq1,inp,eq2,sUnit,cb);
+    return row;
+  }
+
+  addRowBtn.addEventListener("click",()=> zapisList.appendChild(createRow()));
+
+  checkBtn.addEventListener("click",()=>{
+    const bad = [...zapisList.children].some(r=>{
+      const [sVar,,inp,,sUnit] = r.children;
+      return sVar.value==="-" || sUnit.value==="-" || inp.value.trim()==="";
+    });
+    feedback.classList.remove("hidden");
+    feedback.textContent = bad ? "Doplň všechny údaje v zápisu." : "Zápis je v pořádku.";
+  });
+});
 </script>
 
-<script src="script.js?v=9" defer></script>
 </body>
 </html>
